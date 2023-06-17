@@ -1,24 +1,15 @@
 import os
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt 
 import matplotlib.cm as cm
 import pandas as pd
 
-
-dropbox_directory = '/Users/ari/Dropbox (City Tech)/data/'
-local = os.path.isdir(dropbox_directory)
-if not local:
-    dropbox_directory = input("Path to Dropbox directory: ")
-
-if os.path.isfile('tng300-sam-paper.h5'):
-    df = pd.read_hdf('tng300-sam-paper.h5')
-else:
-    df_sim = pd.read_hdf(dropbox_directory+'tng300-sim.h5')
-
-df_sam = pd.read_hdf(dropbox_directory+'tng300-sam.h5')
-
-def sam_paper_sample(df_orig, mass_cut = 1.e9, min_fdisk = 0.022,
+def sam_paper_sample(df_orig, mass_cut = 1.e9, min_fdisk = 0.0205,
                      fname='tng300_sam_paper.h5', check=False):
+    '''only centrals and only logMstar > mass_cut, also default remove 
+        low fdisk galaxies that are disky. This can be ignored by setting
+        min_fdisk=0'''
     df = df_orig.copy() #don't change original if you need to make other samples
     df['GalpropLogMstar'] = np.log10(df['GalpropMstar'])
     df['GalpropLogRstar'] = np.log10(df['GalpropHalfmassRadius'])
@@ -40,7 +31,18 @@ def sam_paper_sample(df_orig, mass_cut = 1.e9, min_fdisk = 0.022,
             print(field,df[field].min(),df[field].max())
     if fname:
         df.to_hdf(fname, key='s', mode='w')
-    print(df.shape)
+    print(f'Dataframe now has the shape {df.shape}')
+    return df
+
+def morphology_bins(df,bins=[0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]):
+    bulge_fraction = df['GalpropMbulge']/df['GalpropMstar']
+    df['morph_group'] = np.digitize(bulge_fraction,bins) 
+    return df
+
+
+def spin_effective(df):
+    df['spin_eff'] = df['HalopropSpin']
+    df['spin_eff'][df['HalopropSpin'] < 0.02] = 0.02
     return df
 
 def stats_in_bins(df, xfield, yfield, bins):
@@ -125,22 +127,44 @@ def fig_group_importance(datasets, number_features=5):
     plt.subplots_adjust(bottom=0.2)
     plt.savefig('group_feature.pdf')
 
-if __name__ == '__main__':
+def fig1(df,df_sim):
+    '''comparison of sizes in SAM and SIM'''
+    sam_mMstar,sam_mRstar,sam_stdRstar = mass_size_vals(df, sam=True)
+    sim_mMstar,sim_mRstar,sim_stdRstar = mass_size_vals(df_sim, sam=False)
+    mass_size(sam_mMstar,sam_mRstar,sam_stdRstar,
+        sim_mMstar,sim_mRstar,sim_stdRstar)
+
+def main(args):
     dropbox_directory = '/Users/ari/Dropbox (City Tech)/data/'
     local = os.path.isdir(dropbox_directory)
     if not local:
         dropbox_directory = input("Path to Dropbox directory: ")
 
-    if os.path.isfile('tng300_sam_paper.h5'):
-        df = pd.read_hdf('tng300_sam_paper.h5')
-    else:
+    if args.sample or not os.path.isfile('tng300_sam_paper.h5'):
         df_sam = pd.read_hdf(dropbox_directory+'tng300-sam.h5')
         df = sam_paper_sample(df_sam)
+    else:
+        df = pd.read_hdf('tng300_sam_paper.h5')
 
-    #make Figure 1
-    df_sim = pd.read_hdf(dropbox_directory+'tng300-sim.h5')
+    morphology_bins(df)
+    plt.hist(df['morph_group'])
+    plt.show()
 
-    sam_mMstar,sam_mRstar,sam_stdRstar = mass_size_vals(df, sam=True)
-    sim_mMstar,sim_mRstar,sim_stdRstar = mass_size_vals(df_sim, sam=False)
-    mass_size(sam_mMstar,sam_mRstar,sam_stdRstar,
-        sim_mMstar,sim_mRstar,sim_stdRstar)
+    if args.fig==1: #make Figure 1
+        df_sim = pd.read_hdf(dropbox_directory+'tng300-sim.h5')
+        fig1(df,df_sim)
+  
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description= 
+        'Makes the data samples and figures for the paper ')
+    parser.add_argument('-s', '--sample', help='just creates the data samples')
+    parser.add_argument('-d', '--fig', help = 'number of figure to make')
+    args = parser.parse_args()
+    print(args)
+    main(args)
+
+
+    
+
+
