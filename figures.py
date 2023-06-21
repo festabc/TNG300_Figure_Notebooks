@@ -18,7 +18,8 @@ def sam_paper_sample(df_orig, mass_cut = 1.e9, min_fdisk = 0.0205,
     df.drop(['GalpropX', 'GalpropVx', 'GalpropY', 'GalpropVy', 'GalpropZ',
              'GalpropVz'],axis=1,inplace=True)
     df.drop(['HalopropMdot_eject','HalopropMdot_eject_metal',
-             'HalopropMaccdot_metal'],axis=1,inplace=True)
+             'HalopropMaccdot_metal'],axis=1,inplace=True) #all zero
+    df.drop(['HalopropMaccdot_reaccreate_metal']) #mostly zero
     fdisk = (df['GalpropMstar']+df['GalpropMcold'])/df['GalpropMvir']
     mask =  (df['GalpropMbulge']/df['GalpropMstar'] > 0.4) | (fdisk > min_fdisk)
     mask = (df['GalpropMstar'] > mass_cut) & mask
@@ -39,12 +40,45 @@ def morphology_bins(df,bins=[0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]):
     df['morph_group'] = np.digitize(bulge_fraction,bins) 
     return df
 
-
 def spin_effective(df):
     df['spin_eff'] = df['HalopropSpin']
     df['spin_eff'][df['HalopropSpin'] < 0.02] = 0.02
     return df
 
+def remove_dimensions(df,fname='tng300_sam_paper_0d.h5'):
+    '''makes a data set dimensionless'''
+    def new_name(name):
+        spot = name.find('prop')+4
+        return name[0:spot]+'Norm'+name[spot:]
+    
+    scales = ['GalpropMvir','GalpropRhalo','GalpropVvir']
+    mass_fields=['GalpropMBH', 'GalpropMbulge', 'GalpropMcold', 
+                 'GalpropMstar' 'GalpropMstar_merge', 'GalpropMstrip',
+                 'GalpropMdisk','HalopropMhot','HalopropMvir']
+
+    size_fields = ['GalpropHalfmassRadius']
+    vel_fields = ['GalpropVdisk','GalpropSigmaBulge']
+    for field in mass_fields:
+        df[new_name(field)] = df[field]/df[scales[0]]
+        df.drop(field)
+
+    for field in size_fields:
+        df[new_name(field)] = df[field]/df[scales[1]]
+        df.drop(field)    
+
+    for field in vel_fields:
+        df[new_name(field)] = df[field]/df[scales[2]]
+        df.drop(field) 
+                         
+    for field in scales:
+           df.drop(field)
+
+    if fname:
+        df.to_hdf(fname)
+    return df
+
+
+#functions for figures 
 def stats_in_bins(df, xfield, yfield, bins):
     N = len(bins)-1
     xvals = np.zeros(N)
@@ -146,9 +180,9 @@ def main(args):
     else:
         df = pd.read_hdf('tng300_sam_paper.h5')
 
-    morphology_bins(df)
-    plt.hist(df['morph_group'])
-    plt.show()
+#    morphology_bins(df)
+#    plt.hist(df['morph_group'])
+#    plt.show()
 
     if args.fig==1: #make Figure 1
         df_sim = pd.read_hdf(dropbox_directory+'tng300-sim.h5')
@@ -159,6 +193,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description= 
         'Makes the data samples and figures for the paper ')
     parser.add_argument('-s', '--sample', help='just creates the data samples')
+    parese.add_arguemnt('-z','--zeroD', help='create dimensionless sample')
     parser.add_argument('-d', '--fig', help = 'number of figure to make')
     args = parser.parse_args()
     print(args)
