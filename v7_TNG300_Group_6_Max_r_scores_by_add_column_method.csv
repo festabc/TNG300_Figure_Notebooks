@@ -1,0 +1,11 @@
+feature_number,features,r_sq_score
+1,GalpropNormSigmaBulge,0.46058213117254354
+2,GalpropNormMHII,0.744158614773999
+3,GalpropNormMstar,0.8513207701698784
+4,HalopropSpin,0.9073252637294722
+5,HalopropC_nfw,0.9193654066213856
+6,GalpropOutflowRate_Mass,0.9231433827661667
+7,GalpropTmerger,0.9280215229007628
+8,HalopropZhot,0.9280890268508247
+9,GalpropTmerger_major,0.9276708106356354
+10,GalpropZstar,0.9274427295467347
