@@ -1,0 +1,11 @@
+feature_number,features,r_sq_score
+1,GalpropNormSigmaBulge,0.2933221120489446
+2,GalpropNormMstar,0.5070182594774185
+3,HalopropMaccdot_radio,0.6669119276649432
+4,HalopropC_nfw,0.7206598254860047
+5,GalpropSfr,0.7319530706623268
+6,HalopropSpin,0.7430231382838445
+7,GalpropMu_merger,0.7433078090033192
+8,GalpropTmerger,0.7555115123434853
+9,HalopropMetal_ejected,0.7578002165333918
+10,GalpropNormMstar_merge,0.7620606092767703
